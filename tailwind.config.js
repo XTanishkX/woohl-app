@@ -7,19 +7,13 @@ module.exports = {
     extend: {
       colors: {
         woohl: {
-          orange: '#FF6A00',
+          orange: '#F34F17',
+          green: '#10B981',
+          red: '#EF4444',
+          blue: '#1D4ED8',
           dark: '#0A1628',
-          bg: '#FAFAF9',
+          bg: '#FAFAFA',
           offwhite: '#FCFCFC',
-          purple: {
-            100: '#F3E8FF',
-            500: '#A855F7',
-            600: '#9333EA',
-          },
-          blue: {
-            100: '#DBEAFE',
-            500: '#3B82F6',
-          }
         }
       }
     },

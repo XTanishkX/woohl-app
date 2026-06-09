@@ -1,13 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Home, Compass, ShoppingBag, User } from 'lucide-react-native';
-import { Colors } from '../../constants/Colors';
+import { Home, Compass, ShoppingBag, User, Shirt, PlayCircle } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF6A00', // Woohl Orange
+        tabBarActiveTintColor: '#F34F17', // New Woohl Orange
         tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
           backgroundColor: '#ffffff',
@@ -25,10 +24,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="reels"
+        options={{
+          title: 'Reels',
+          tabBarIcon: ({ color }) => <PlayCircle color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <Compass color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="closet"
+        options={{
+          title: 'Closet',
+          tabBarIcon: ({ color }) => <Shirt color={color} size={24} />,
         }}
       />
       <Tabs.Screen
@@ -41,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'You',
+          title: 'Profile',
           tabBarIcon: ({ color }) => <User color={color} size={24} />,
         }}
       />

@@ -1,138 +1,146 @@
 import React from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Search, Bell } from 'lucide-react-native';
-import { Colors } from '../../constants/Colors';
+import { Search, Bell, ShoppingBag, Flame, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { mockProducts } from '../../lib/mock-db/data';
 
 export default function HomeScreen() {
   const router = useRouter();
-
-  const categories = ['Apparel', 'Watches', 'Phones', 'Shoes', 'More'];
-  const latestProducts = [
-    { id: '1', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200' },
-    { id: '2', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200' },
-    { id: '3', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200' },
-  ];
-
-  const keepShopping = [
-    { id: '1', title: 'T-shirts', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100' },
-    { id: '2', title: 'Cases', image: 'https://images.unsplash.com/photo-1603313011101-320f26a4f6f6?w=100' },
-    { id: '3', title: 'Watches', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100' },
-    { id: '4', title: 'Plates', image: 'https://images.unsplash.com/photo-1610738043695-1f91910d68f7?w=100' },
-  ];
-
-  const deals = [
-    { 
-      id: '1', 
-      title: 'Classic Analog Watch for Men', 
-      brand: 'emporio', 
-      price: '399', 
-      rating: 4.5,
-      reviews: 120,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300' 
-    }
+  
+  const categories = [
+    { id: 1, name: "Women's Fashion", icon: "👗" },
+    { id: 2, name: "Men's Fashion", icon: "👕" },
+    { id: 3, name: "Skincare", icon: "✨" },
+    { id: 4, name: "Gadgets", icon: "📱" },
+    { id: 5, name: "Home Decor", icon: "🪴" },
   ];
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-5 py-4 flex-row justify-between items-center border-b border-zinc-100">
-        <Text className="text-2xl font-bold text-woohl-dark tracking-tighter">pie</Text>
-        <View className="flex-row gap-4">
-          <TouchableOpacity>
-            <Search size={24} color={Colors.dark} />
+      {/* Top App Bar */}
+      <View className="px-5 py-4 flex-row items-center justify-between border-b border-zinc-100 z-10 bg-white">
+        <View className="flex-row items-center">
+          <View className="w-10 h-10 bg-woohl-orange rounded-full items-center justify-center mr-3 shadow-sm shadow-woohl-orange/40">
+            <Text className="text-white font-black italic text-lg">W.</Text>
+          </View>
+          <View>
+            <Text className="text-woohl-dark font-black text-xl tracking-tight leading-tight">Woohl</Text>
+            <Text className="text-woohl-orange font-bold text-[10px] uppercase tracking-widest leading-tight">Social Commerce</Text>
+          </View>
+        </View>
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+            <Search color="#0A1628" size={24} />
           </TouchableOpacity>
           <TouchableOpacity>
-            <Bell size={24} color={Colors.dark} />
+            <Bell color="#0A1628" size={24} />
+            <View className="absolute -top-1 -right-1 w-3 h-3 bg-woohl-red rounded-full border border-white" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* Categories */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          className="py-4 pl-5"
-        >
-          {categories.map((cat, index) => (
-            <TouchableOpacity 
-              key={index} 
-              className={`mr-3 px-5 py-2 rounded-full border ${index === 0 ? 'bg-woohl-dark border-woohl-dark' : 'bg-white border-zinc-200'}`}
-            >
-              <Text className={`font-medium ${index === 0 ? 'text-white' : 'text-zinc-600'}`}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
-          <View className="w-5" />
-        </ScrollView>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Categories Horizontal Scroll */}
+        <View className="py-5">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            {categories.map((cat) => (
+              <TouchableOpacity key={cat.id} className="items-center mr-6">
+                <View className="w-16 h-16 bg-white rounded-full items-center justify-center mb-3 shadow-lg shadow-zinc-200 border border-zinc-100">
+                  <Text className="text-2xl">{cat.icon}</Text>
+                </View>
+                <Text className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Hero Banner */}
-        <TouchableOpacity className="mx-5 mb-8 rounded-2xl overflow-hidden bg-woohl-dark h-48 relative">
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=800' }}
-            className="absolute inset-0 w-full h-full opacity-60"
-          />
-          <View className="absolute inset-0 bg-gradient-to-r from-woohl-dark/80 to-transparent" />
-          <View className="p-6 justify-center flex-1">
-            <Text className="text-white text-3xl font-bold w-2/3 mb-4 leading-tight">Get 30% Off On The Best Laptops</Text>
-            <View className="bg-white/20 self-start px-4 py-2 rounded-full backdrop-blur-md">
-              <Text className="text-white font-bold text-xs uppercase tracking-wider">Shop Now</Text>
+        <View className="px-5 mt-2 mb-8">
+          <TouchableOpacity className="w-full aspect-[2/1.1] rounded-[2rem] overflow-hidden relative shadow-2xl shadow-woohl-orange/30">
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=800' }} 
+              className="w-full h-full" 
+              resizeMode="cover" 
+            />
+            <View className="absolute inset-0 bg-gradient-to-r from-woohl-dark/90 via-woohl-dark/60 to-transparent p-6 justify-center">
+              <View className="bg-woohl-orange/20 self-start px-3 py-1.5 rounded-lg mb-3 border border-woohl-orange/40 backdrop-blur-md">
+                <Text className="text-woohl-orange font-black text-[10px] uppercase tracking-widest">Mega Drop</Text>
+              </View>
+              <Text className="text-white font-black text-3xl w-[85%] leading-[1.1] mb-3">Get 30% Off On The Best Laptops</Text>
+              <Text className="text-white/80 font-semibold text-xs mb-6">Limited time group buy offer!</Text>
+              <View className="bg-woohl-orange py-3 px-6 rounded-2xl self-start shadow-xl shadow-woohl-orange/40">
+                <Text className="text-white font-black text-xs uppercase tracking-wider">Shop Now</Text>
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Latest Products */}
-        <View className="mb-8">
-          <View className="px-5 flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-woohl-dark">Latest Products</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5">
-            {latestProducts.map((prod) => (
-              <TouchableOpacity key={prod.id} className="mr-4 w-32 h-40 rounded-2xl overflow-hidden bg-zinc-100">
-                <Image source={{ uri: prod.image }} className="w-full h-full" resizeMode="cover" />
-              </TouchableOpacity>
-            ))}
-            <View className="w-5" />
-          </ScrollView>
+          </TouchableOpacity>
         </View>
 
-        {/* Keep shopping for */}
-        <View className="mb-8">
-          <View className="px-5 flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-woohl-dark">Keep shopping for</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5">
-            {keepShopping.map((item) => (
-              <TouchableOpacity key={item.id} className="mr-6 items-center">
-                <View className="w-20 h-20 rounded-full bg-zinc-100 mb-2 overflow-hidden border border-zinc-200">
-                  <Image source={{ uri: item.image }} className="w-full h-full" resizeMode="cover" />
-                </View>
-                <Text className="text-zinc-600 font-medium text-sm">{item.title}</Text>
-              </TouchableOpacity>
-            ))}
-            <View className="w-5" />
-          </ScrollView>
-        </View>
-
-        {/* Deals for you */}
+        {/* Call to Action - Reels */}
         <View className="px-5 mb-10">
-          <Text className="text-lg font-bold text-woohl-dark mb-4">Deals for you</Text>
-          {deals.map((deal) => (
-            <TouchableOpacity 
-              key={deal.id} 
-              onPress={() => router.push(`/product/${deal.id}`)}
-              className="flex-row bg-white border border-zinc-100 rounded-2xl p-3 shadow-sm shadow-zinc-200 mb-4"
-            >
-              <View className="w-28 h-28 bg-zinc-100 rounded-xl overflow-hidden mr-4">
-                <Image source={{ uri: deal.image }} className="w-full h-full" resizeMode="cover" />
+          <TouchableOpacity 
+            onPress={() => router.push('/(tabs)/reels')}
+            className="w-full bg-woohl-dark rounded-[2rem] p-6 flex-row items-center justify-between shadow-2xl shadow-woohl-dark/40 relative overflow-hidden"
+          >
+            {/* Background Glow */}
+            <View className="absolute top-0 right-0 w-32 h-32 bg-woohl-orange/20 rounded-full blur-3xl" />
+            
+            <View className="flex-row items-center flex-1">
+              <View className="w-14 h-14 bg-white/10 rounded-2xl items-center justify-center mr-4 border border-white/10 backdrop-blur-lg">
+                <Sparkles color="#F34F17" size={28} />
               </View>
-              <View className="flex-1 justify-center">
-                <Text className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">{deal.brand}</Text>
-                <Text className="text-woohl-dark font-bold text-base leading-tight mb-2" numberOfLines={2}>{deal.title}</Text>
-                <Text className="text-woohl-orange font-bold text-lg">₹{deal.price}</Text>
+              <View className="flex-1">
+                <Text className="text-white font-black text-xl mb-1 tracking-tight">Watch & Shop</Text>
+                <Text className="text-white/60 text-xs font-medium leading-relaxed pr-4">Swipe through our AI-curated video feed and discover products instantly.</Text>
               </View>
+            </View>
+            <View className="bg-woohl-orange px-4 py-2 rounded-xl shadow-lg shadow-woohl-orange/50">
+              <Text className="text-white font-black text-[10px] uppercase tracking-widest">Watch</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Recommended Deals (Grid) */}
+        <View className="px-5">
+          <View className="flex-row items-center justify-between mb-6">
+            <View className="flex-row items-center">
+              <Flame color="#F34F17" size={24} className="mr-2" />
+              <Text className="text-2xl font-black text-woohl-dark tracking-tight">Deals For You</Text>
+            </View>
+            <TouchableOpacity className="bg-zinc-100 px-4 py-2 rounded-full">
+              <Text className="text-woohl-dark font-black text-[10px] uppercase tracking-widest">See All</Text>
             </TouchableOpacity>
-          ))}
+          </View>
+          
+          <View className="flex-row flex-wrap justify-between">
+            {mockProducts.map((product) => (
+              <TouchableOpacity 
+                key={product.id} 
+                className="w-[48%] mb-8 bg-white rounded-3xl shadow-xl shadow-zinc-200/50"
+                onPress={() => router.push(`/product/${product.id}`)}
+              >
+                <View className="w-full aspect-[4/5] bg-zinc-100 relative rounded-t-3xl overflow-hidden">
+                  <Image source={{ uri: product.images[0] }} className="w-full h-full" resizeMode="cover" />
+                  {/* Glassmorphic Eco Badge */}
+                  <View className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white">
+                    <Text className="text-woohl-green text-[10px] font-black tracking-widest">{product.sustainabilityScore} ECO</Text>
+                  </View>
+                </View>
+                <View className="p-4 border border-t-0 border-zinc-100 rounded-b-3xl">
+                  <Text className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5">{product.brandName}</Text>
+                  <Text className="text-woohl-dark font-bold text-sm leading-tight mb-3" numberOfLines={2}>{product.name}</Text>
+                  <View className="flex-row items-center justify-between mt-auto">
+                    <Text className="text-woohl-dark font-black text-lg">₹{product.price}</Text>
+                    <View className="w-10 h-10 bg-woohl-orange rounded-full items-center justify-center shadow-lg shadow-woohl-orange/40">
+                      <ShoppingBag color="white" size={16} />
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

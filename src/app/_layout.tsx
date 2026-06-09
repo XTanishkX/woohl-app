@@ -13,9 +13,10 @@ export default function RootLayout() {
   return (
     <AppQueryProvider>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="wallet" />
         <Stack.Screen name="product/[id]" />
-        <Stack.Screen name="checkout/index" />
         <Stack.Screen name="creator/[id]" />
       </Stack>
     </AppQueryProvider>
