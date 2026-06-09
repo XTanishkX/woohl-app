@@ -1,18 +1,20 @@
 {
   "expo": {
-    "name": "woohl-app",
-    "slug": "woohl-app",
+    "name": "Woohl",
+    "slug": "woohl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "woohlapp",
+    "scheme": "woohl",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.woohl.app",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.woohl.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FF6A00",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -28,13 +30,15 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FAFAF9",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

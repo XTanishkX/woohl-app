@@ -1,15 +1,23 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import '../global.css';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Stack, ErrorBoundary as ExpoErrorBoundary } from 'expo-router';
+import { useColorScheme, View, Text, TouchableOpacity } from 'react-native';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+import { AppQueryProvider } from '@/providers/query-provider';
+import { Button } from '@/components/ui/Button';
+
+// Catch any errors thrown by the Layout component.
+export { ErrorBoundary } from 'expo-router';
+
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AppQueryProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="product/[id]" />
+        <Stack.Screen name="checkout/index" />
+        <Stack.Screen name="creator/[id]" />
+      </Stack>
+    </AppQueryProvider>
   );
 }
