@@ -4,15 +4,18 @@ import { CheckCircle, Package } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../store/useAppStore';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withDelay } from 'react-native-reanimated';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 export default function OrderSuccessScreen() {
   const router = useRouter();
   const { clearCart } = useAppStore();
   const scale = useSharedValue(0);
+  const [showConfetti, setShowConfetti] = React.useState(false);
 
   useEffect(() => {
     clearCart();
     scale.value = withDelay(300, withSpring(1, { damping: 10, stiffness: 100 }));
+    setTimeout(() => setShowConfetti(true), 300);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -52,6 +55,16 @@ export default function OrderSuccessScreen() {
       >
         <Text className="text-white font-black uppercase tracking-widest text-sm">Continue Shopping</Text>
       </TouchableOpacity>
+
+      {showConfetti && (
+        <ConfettiCannon
+          count={150}
+          origin={{ x: Dimensions.get('window').width / 2, y: -20 }}
+          autoStart={true}
+          colors={['#FF6A00', '#FCD34D', '#FFFFFF', '#F59E0B']}
+          fallSpeed={3000}
+        />
+      )}
     </SafeAreaView>
   );
 }

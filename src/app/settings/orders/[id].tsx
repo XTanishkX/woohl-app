@@ -3,6 +3,38 @@ import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'r
 import { ArrowLeft, Package, MapPin, CreditCard, Download } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '../../../store/useAppStore';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+
+const STATUSES = ['Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
+
+const PulsingDot = ({ isActive, isCompleted }: { isActive: boolean, isCompleted: boolean }) => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.5);
+
+  React.useEffect(() => {
+    if (isActive) {
+      scale.value = withRepeat(withSequence(withTiming(1.8, { duration: 1000 }), withTiming(1, { duration: 1000 })), -1, true);
+      opacity.value = withRepeat(withSequence(withTiming(0, { duration: 1000 }), withTiming(0.5, { duration: 1000 })), -1, true);
+    } else {
+      scale.value = 1;
+      opacity.value = 0.5;
+    }
+  }, [isActive]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View className="relative w-5 h-5 items-center justify-center">
+      {isActive && (
+        <Animated.View style={[animatedStyle, { position: 'absolute', width: '100%', height: '100%', backgroundColor: '#FF6A00', borderRadius: 10 }]} />
+      )}
+      <View className={`w-3 h-3 rounded-full z-10 ${isCompleted ? 'bg-woohl-green' : isActive ? 'bg-woohl-orange' : 'bg-zinc-300'}`} />
+    </View>
+  );
+};
 
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -35,10 +67,33 @@ export default function OrderDetailsScreen() {
             <Text className="text-zinc-500 text-sm">Placed on</Text>
             <Text className="text-woohl-dark font-bold text-sm">{order.date}</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-zinc-500 text-sm">Status</Text>
-            <Text className="text-woohl-green font-black text-sm uppercase">{order.status}</Text>
-          </View>
+        </View>
+
+        <View className="bg-white p-5 rounded-3xl shadow-sm border border-zinc-100 mb-6">
+          <Text className="text-woohl-dark font-black text-lg mb-6">Tracking Timeline</Text>
+          {STATUSES.map((status, index) => {
+            // Fake logic for demo since mock data only has 'Processing' and 'Delivered'
+            const currentStatusIndex = STATUSES.indexOf(order.status === 'Delivered' ? 'Delivered' : 'Processing');
+            const isCompleted = currentStatusIndex >= index;
+            const isActive = currentStatusIndex === index && order.status !== 'Delivered';
+
+            return (
+              <View key={status} className="flex-row mb-1">
+                <View className="items-center mr-4 w-5">
+                  <PulsingDot isActive={isActive} isCompleted={isCompleted || order.status === 'Delivered'} />
+                  {index < STATUSES.length - 1 && (
+                    <View className={`w-[2px] h-10 mt-1 mb-1 rounded-full ${currentStatusIndex > index ? 'bg-woohl-green' : 'bg-zinc-100'}`} />
+                  )}
+                </View>
+                <View className="pb-8">
+                  <Text className={`font-black text-base ${isActive || (isCompleted && order.status === 'Delivered' && index === 3) ? 'text-woohl-orange' : isCompleted ? 'text-woohl-dark' : 'text-zinc-400'}`}>
+                    {status}
+                  </Text>
+                  {isActive && <Text className="text-zinc-500 text-xs font-bold mt-1">We are working on it.</Text>}
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <Text className="text-woohl-dark font-black text-lg mb-4 ml-2">Items</Text>

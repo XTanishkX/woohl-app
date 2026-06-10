@@ -1,12 +1,34 @@
-import React from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
-import { ArrowLeft, Coins as CoinsIcon, History, Gift } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { ArrowLeft, Coins as CoinsIcon, History, Gift, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 export default function CoinsScreen() {
   const router = useRouter();
   const { woohlCoins } = useAppStore();
+  
+  const [hasSpun, setHasSpun] = useState(false);
+  const rotation = useSharedValue(0);
+
+  const spinWheel = () => {
+    if (hasSpun) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    rotation.value = withTiming(
+      rotation.value + 360 * 5 + 180, // Spin 5 times and stop
+      { duration: 3000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) },
+      () => {
+        runOnJS(setHasSpun)(true);
+        runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
+      }
+    );
+  };
+
+  const wheelStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }]
+  }));
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50">
@@ -25,6 +47,33 @@ export default function CoinsScreen() {
           <Text className="text-white/80 font-bold uppercase tracking-widest text-xs mb-1">Available Balance</Text>
           <Text className="text-white font-black text-5xl mb-2">{woohlCoins}</Text>
           <Text className="text-white/90 text-sm font-medium">1 Woohl Coin = ₹1 on your next purchase</Text>
+        </View>
+
+        {/* Gamification: Spin to Win */}
+        <Text className="text-woohl-dark font-black text-lg mb-4 ml-2">Daily Spin</Text>
+        <View className="bg-white rounded-3xl border border-zinc-100 shadow-sm p-6 mb-6 items-center">
+          <Animated.View style={wheelStyle} className="w-48 h-48 rounded-full border-8 border-woohl-dark bg-zinc-100 items-center justify-center relative overflow-hidden mb-6 shadow-xl shadow-black/10">
+            {/* simple segments */}
+            <View className="absolute inset-0 bg-woohl-orange/20" />
+            <View className="absolute w-full h-1 bg-white" style={{ transform: [{ rotate: '45deg' }] }} />
+            <View className="absolute w-full h-1 bg-white" style={{ transform: [{ rotate: '90deg' }] }} />
+            <View className="absolute w-full h-1 bg-white" style={{ transform: [{ rotate: '135deg' }] }} />
+            <View className="absolute w-full h-1 bg-white" style={{ transform: [{ rotate: '180deg' }] }} />
+            <Sparkles color="#FF6A00" size={32} />
+          </Animated.View>
+          
+          <TouchableOpacity 
+            onPress={spinWheel} 
+            disabled={hasSpun}
+            className={`px-8 py-3 rounded-full ${hasSpun ? 'bg-zinc-200' : 'bg-woohl-dark shadow-lg shadow-black/20'}`}
+          >
+            <Text className={`font-black uppercase tracking-widest text-sm ${hasSpun ? 'text-zinc-500' : 'text-white'}`}>
+              {hasSpun ? 'Come back tomorrow' : 'Tap to Spin'}
+            </Text>
+          </TouchableOpacity>
+          {hasSpun && (
+            <Text className="text-woohl-green font-black text-sm mt-4">+50 Coins Won!</Text>
+          )}
         </View>
 
         <Text className="text-woohl-dark font-black text-lg mb-4 ml-2">Recent History</Text>

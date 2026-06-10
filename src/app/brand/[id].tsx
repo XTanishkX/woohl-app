@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, PlayCircle, MapPin, Heart } from 'lucide-react-native';
 import { useAppStore } from '../../store/useAppStore';
 import { mockBrands, mockProducts, mockVideoFeed } from '../../lib/mock-db/data';
+import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +22,35 @@ export default function BrandScreen() {
 
   const [activeTab, setActiveTab] = useState<'Products' | 'Our Story' | 'Reels'>('Products');
 
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const parallaxStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: interpolate(scrollY.value, [-100, 0, 300], [0, 0, 150], Extrapolation.CLAMP)
+        }
+      ]
+    };
+  });
+
+  const videoUrl = mockVideoFeed[0].videoUrl; // Fallback to a video for intro
+  const player = useVideoPlayer(videoUrl, player => {
+    player.loop = true;
+    player.muted = true;
+    player.play();
+  });
+
+  const handleFollow = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    toggleFollowBrand(brand.id);
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* HEADER / NAVIGATION OVERLAY */}
@@ -28,12 +60,17 @@ export default function BrandScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* HERO SECTION */}
-        <View className="h-48 w-full relative">
-          <Image source={{ uri: brand.coverImage }} className="w-full h-full" />
-          <View className="absolute inset-0 bg-black/20" />
-        </View>
+      <Animated.ScrollView showsVerticalScrollIndicator={false} className="flex-1" onScroll={scrollHandler} scrollEventThrottle={16}>
+        {/* HERO SECTION with Parallax */}
+        <Animated.View style={[parallaxStyle, { height: 300, width: '100%', position: 'relative' }]}>
+          <VideoView
+            style={{ width: '100%', height: '100%' }}
+            player={player}
+            contentFit="cover"
+            nativeControls={false}
+          />
+          <View className="absolute inset-0 bg-black/30" />
+        </Animated.View>
 
         <View className="px-5 pb-6 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-end mb-4">
@@ -41,8 +78,8 @@ export default function BrandScreen() {
               <Image source={{ uri: brand.logo }} className="w-full h-full" />
             </View>
             <TouchableOpacity 
-              onPress={() => toggleFollowBrand(brand.id)}
-              className={`px-6 py-2 rounded-full border-2 ${isFollowing ? 'bg-gray-100 border-gray-200' : 'bg-[#F34F17] border-[#F34F17]'}`}
+              onPress={handleFollow}
+              className={`px-6 py-2 rounded-full border-2 ${isFollowing ? 'bg-gray-100 border-gray-200' : 'bg-woohl-orange border-woohl-orange shadow-lg shadow-woohl-orange/30'}`}
             >
               <Text className={`font-bold text-sm ${isFollowing ? 'text-gray-700' : 'text-white'}`}>
                 {isFollowing ? 'Following' : 'Follow'}
@@ -155,7 +192,7 @@ export default function BrandScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

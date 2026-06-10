@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Search, Mic, X, TrendingUp, Search as SearchIcon, Camera } from 'lucide-react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { Input } from '../../components/ui/Input';
 import { mockProducts } from '../../lib/mock-db/data';
 import { useRouter } from 'expo-router';
@@ -57,7 +58,7 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white relative">
       <View className="px-5 py-4 border-b border-zinc-100 z-10">
-        <Text className="text-2xl font-black text-woohl-dark mb-4 tracking-tight">Explore</Text>
+        <ExpoImage source={require('../../../public/wordmark.png')} style={{ height: 24, width: 80, marginBottom: 16 }} contentFit="contain" />
         <View className="flex-row items-center gap-3">
           <View className="flex-1">
             <Input 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions, FlatList, Pressable } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
 import { mockProducts, mockBrands, mockVideoFeed, HOME_TABS, HERO_BANNERS, QUICK_LINKS } from '../../lib/mock-db/data';
@@ -29,9 +30,9 @@ export default function HomeScreen() {
         {/* Top Bar */}
         <View className="flex-row items-center justify-between px-4 mb-3">
           <View className="flex-row items-center">
-            <HomeIcon color="#111827" size={20} className="mr-2" />
-            <Text className="text-sm font-bold text-gray-800">Deliver to: Delhi 110001</Text>
-            <ChevronDown color="#111827" size={16} className="ml-1" />
+            <ExpoImage source={require('../../../public/wordmark.png')} style={{ height: 24, width: 80 }} contentFit="contain" />
+            <Text className="text-xs font-bold text-gray-500 ml-3 uppercase tracking-wider">Deliver to: Delhi 110001</Text>
+            <ChevronDown color="#6B7280" size={14} className="ml-1" />
           </View>
           <TouchableOpacity 
             onPress={() => router.push('/settings/coins')}

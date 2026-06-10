@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
-import { X, Eye, Heart, Share2, ShoppingBag, Send } from 'lucide-react-native';
+import { X, Eye, Heart, Share2, ShoppingBag, Send, Volume2, VolumeX } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate, Extrapolation, FadeInDown, Layout, FadeOut } from 'react-native-reanimated';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import * as Haptics from 'expo-haptics';
 
 const { height, width } = Dimensions.get('window');
 
@@ -14,6 +17,21 @@ export default function LiveCommerceScreen() {
     { id: 3, user: 'Neha S.', text: 'Just bought 2 of these 😍' },
   ]);
 
+  const [isMuted, setIsMuted] = useState(false);
+  const [hearts, setHearts] = useState<{ id: number; xOffset: number }[]>([]);
+
+  const player = useVideoPlayer('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', player => {
+    player.loop = true;
+    player.muted = isMuted;
+    player.play();
+  });
+
+  useEffect(() => {
+    if (player) {
+      player.muted = isMuted;
+    }
+  }, [isMuted, player]);
+
   const handleSend = () => {
     if (chat.trim()) {
       setMessages([...messages, { id: Date.now(), user: 'You', text: chat }]);
@@ -21,14 +39,49 @@ export default function LiveCommerceScreen() {
     }
   };
 
+  const spawnHeart = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setHearts(prev => [...prev, { id: Date.now(), xOffset: Math.random() * 40 - 20 }]);
+    setTimeout(() => {
+      setHearts(prev => prev.filter(h => Date.now() - h.id < 2000));
+    }, 2000);
+  };
+
+  const FloatingHeart = ({ xOffset }: { xOffset: number }) => {
+    const translateY = useSharedValue(0);
+    const opacity = useSharedValue(1);
+
+    useEffect(() => {
+      translateY.value = withTiming(-200, { duration: 1500 });
+      opacity.value = withTiming(0, { duration: 1500 });
+    }, []);
+
+    const style = useAnimatedStyle(() => ({
+      transform: [{ translateY: translateY.value }, { translateX: xOffset }],
+      opacity: opacity.value,
+      position: 'absolute',
+      bottom: 60,
+      right: 20
+    }));
+
+    return (
+      <Animated.View style={style}>
+        <Heart color="#FF6A00" size={32} fill="#FF6A00" />
+      </Animated.View>
+    );
+  };
+
   return (
-    <View className="flex-1 bg-black">
-      {/* Background Video Mock */}
-      <Image 
-        source={{ uri: 'https://images.unsplash.com/photo-1515347619152-475a898b92b6?w=800' }} 
-        className="absolute inset-0 w-full h-full opacity-80" 
-        resizeMode="cover" 
-      />
+    <View className="flex-1 bg-black relative">
+      {/* Background Video */}
+      <View className="absolute inset-0 w-full h-full opacity-90">
+        <VideoView
+          style={{ width: '100%', height: '100%' }}
+          player={player}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      </View>
       
       {/* Header Overlay */}
       <SafeAreaView className="absolute top-0 w-full z-10 px-5 py-4 flex-row justify-between items-start">
@@ -42,10 +95,14 @@ export default function LiveCommerceScreen() {
             <Text className="text-white font-bold text-xs">4.2K</Text>
           </View>
         </View>
-        
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full items-center justify-center border border-white/20">
-          <X color="white" size={20} />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity onPress={() => setIsMuted(!isMuted)} className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full items-center justify-center border border-white/20">
+            {isMuted ? <VolumeX color="white" size={20} /> : <Volume2 color="white" size={20} />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full items-center justify-center border border-white/20">
+            <X color="white" size={20} />
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
 
       {/* Startup Profile Banner */}
@@ -88,19 +145,19 @@ export default function LiveCommerceScreen() {
             {/* Chat Messages */}
             <View className="h-48 justify-end mb-4 overflow-hidden">
               {messages.map((msg) => (
-                <View key={msg.id} className="mb-2 flex-row flex-wrap">
+                <Animated.View key={msg.id} entering={FadeInDown.duration(400)} exiting={FadeOut} layout={Layout.springify()} className="mb-2 flex-row flex-wrap">
                   <View className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex-row">
                     <Text className="text-white/70 font-bold text-sm mr-2">{msg.user}</Text>
                     <Text className="text-white font-medium text-sm">{msg.text}</Text>
                   </View>
-                </View>
+                </Animated.View>
               ))}
             </View>
           </View>
 
           {/* Right Side Actions */}
-          <View className="items-center gap-6 pb-20">
-            <TouchableOpacity className="items-center">
+          <View className="items-center gap-6 pb-20 relative">
+            <TouchableOpacity className="items-center" onPress={spawnHeart}>
               <View className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full items-center justify-center border border-white/20 mb-1">
                 <Heart color="white" size={24} fill="white" />
               </View>
@@ -114,6 +171,8 @@ export default function LiveCommerceScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {hearts.map(h => <FloatingHeart key={h.id} xOffset={h.xOffset} />)}
 
         {/* Input Bar */}
         <View className="px-5 pb-8 pt-2 flex-row items-center gap-3">

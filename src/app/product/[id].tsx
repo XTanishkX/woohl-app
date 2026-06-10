@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, Dimensions, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Heart, Share2, Star, ChevronLeft, ShieldCheck, Truck, ArrowRight, ArrowLeft } from 'lucide-react-native';
+import { Heart, Share2, Star, ChevronLeft, ShieldCheck, Truck, ArrowRight, ShoppingCart } from 'lucide-react-native';
 import { useAppStore } from '../../store/useAppStore';
 import { mockProducts, mockBrands } from '../../lib/mock-db/data';
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation, withTiming, Easing, withDelay } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Collapsible } from '../../components/ui/collapsible';
 
 const { width } = Dimensions.get('window');
 
@@ -20,11 +23,64 @@ export default function ProductDetailsScreen() {
   const [selectedColor, setSelectedColor] = useState('#000080');
   const isWishlisted = wishlist.includes(product.id);
 
-  const handleScroll = (event: any) => {
-    const slide = Math.ceil(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width - 0.5);
-    if (slide !== activeImageIndex) {
-      setActiveImageIndex(slide);
-    }
+  const scrollX = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
+
+  const scrollY = useSharedValue(0);
+  const verticalScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const flyX = useSharedValue(0);
+  const flyY = useSharedValue(0);
+  const flyScale = useSharedValue(0);
+  const flyOpacity = useSharedValue(0);
+
+  const handleAddToCart = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    addToCart(product);
+
+    // Trigger Fly to Cart
+    flyOpacity.value = 1;
+    flyScale.value = 1;
+    flyX.value = 0;
+    flyY.value = 0;
+
+    // Approximate cart icon position
+    flyX.value = withTiming(-width/2 + 50, { duration: 600, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
+    flyY.value = withTiming(80, { duration: 600, easing: Easing.bezier(0.5, 0, 0.75, 0) });
+    flyScale.value = withTiming(0, { duration: 600 });
+    
+    setTimeout(() => {
+      flyOpacity.value = 0;
+    }, 600);
+  };
+
+  const flyStyle = useAnimatedStyle(() => ({
+    opacity: flyOpacity.value,
+    transform: [
+      { translateX: flyX.value },
+      { translateY: flyY.value },
+      { scale: flyScale.value }
+    ]
+  }));
+
+  const stickyBarStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(scrollY.value, [0, width], [100, 0], Extrapolation.CLAMP);
+    return {
+      transform: [{ translateY }]
+    };
+  });
+
+  const handleWishlist = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    toggleWishlist(product.id);
   };
 
   const sizes = ['S', 'M', 'L', 'XL'];
@@ -38,8 +94,8 @@ export default function ProductDetailsScreen() {
           <ChevronLeft color="#111827" size={24} />
         </TouchableOpacity>
         <View className="flex-row gap-3">
-          <TouchableOpacity onPress={() => toggleWishlist(product.id)} className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full items-center justify-center border border-zinc-200">
-            <Heart color={isWishlisted ? "#FF5A5F" : "#111827"} size={22} fill={isWishlisted ? "#FF5A5F" : "transparent"} />
+          <TouchableOpacity onPress={handleWishlist} className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full items-center justify-center border border-zinc-200">
+            <Heart color={isWishlisted ? "#FF6A00" : "#111827"} size={22} fill={isWishlisted ? "#FF6A00" : "transparent"} />
           </TouchableOpacity>
           <TouchableOpacity className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full items-center justify-center border border-zinc-200">
             <Share2 color="#111827" size={22} />
@@ -47,26 +103,41 @@ export default function ProductDetailsScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        onScroll={verticalScrollHandler}
+        scrollEventThrottle={16}
+      >
         {/* Image Carousel */}
         <View className="relative">
-          <ScrollView 
-            horizontal 
-            pagingEnabled 
+          <Animated.FlatList
+            data={product.images}
+            keyExtractor={(_, index) => index.toString()}
+            horizontal
+            pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
-          >
-            {product.images.map((img, idx) => (
-              <View key={idx} style={{ width, height: width * 1.2 }}>
-                <Image source={{ uri: img }} className="w-full h-full" resizeMode="cover" />
+            renderItem={({ item }) => (
+              <View style={{ width, height: width * 1.2 }}>
+                <Image source={{ uri: item }} className="w-full h-full" resizeMode="cover" />
               </View>
-            ))}
-          </ScrollView>
+            )}
+          />
           <View className="absolute bottom-4 w-full flex-row justify-center gap-2">
-            {product.images.map((_, idx) => (
-              <View key={idx} className={`h-2 rounded-full ${idx === activeImageIndex ? 'w-6 bg-woohl-dark' : 'w-2 bg-white/50'}`} />
-            ))}
+            {product.images.map((_, i) => {
+              const dotStyle = useAnimatedStyle(() => {
+                const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+                const dotWidth = interpolate(scrollX.value, inputRange, [8, 24, 8], Extrapolation.CLAMP);
+                const bgColor = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP);
+                return {
+                  width: dotWidth,
+                  backgroundColor: scrollX.value >= (i * width) - (width/2) && scrollX.value <= (i * width) + (width/2) ? '#FF6A00' : 'rgba(255,255,255,0.5)',
+                };
+              });
+              return <Animated.View key={i} className="h-2 rounded-full" style={dotStyle} />;
+            })}
           </View>
         </View>
 
@@ -91,9 +162,28 @@ export default function ProductDetailsScreen() {
             </View>
           </View>
 
-          <Text className="text-zinc-600 text-sm leading-relaxed mb-6">
-            {product.description}
-          </Text>
+          {/* Collapsibles */}
+          <View className="mb-6 gap-2">
+            <Collapsible title="Product Description">
+              <Text className="text-zinc-600 text-sm leading-relaxed">
+                {product.description}
+              </Text>
+            </Collapsible>
+            <Collapsible title="Shipping & Returns">
+              <Text className="text-zinc-600 text-sm leading-relaxed">
+                Free standard shipping on orders over ₹999. Return within 14 days for a full refund.
+              </Text>
+            </Collapsible>
+            <Collapsible title="Materials / Sustainability">
+              <Text className="text-zinc-600 text-sm leading-relaxed">
+                Made from 100% organic cotton. Certified by Global Organic Textile Standard (GOTS). Eco score: {product.sustainabilityScore}/100.
+                {"\n\n"}
+                <TouchableOpacity onPress={() => router.push('/sustainability')}>
+                  <Text className="text-woohl-orange font-bold text-sm">Learn more about our sustainability efforts.</Text>
+                </TouchableOpacity>
+              </Text>
+            </Collapsible>
+          </View>
 
           {/* Variants */}
           <View className="mb-6">
@@ -220,14 +310,14 @@ export default function ProductDetailsScreen() {
             )}
           </View>
 
-          {/* Related / Featured Products */}
+          {/* Frequently Bought Together */}
           <View className="mb-4">
-            <Text className="text-woohl-dark font-black text-lg mb-4">You May Also Like</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
-              {mockProducts.filter(p => p.id !== product.id).map((relatedProduct) => (
+            <Text className="text-woohl-dark font-black text-lg mb-4">Frequently Bought Together</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible -mx-5 px-5 pb-4">
+              {mockProducts.filter(p => p.id !== product.id).slice(0, 4).map((relatedProduct) => (
                 <TouchableOpacity 
                   key={relatedProduct.id} 
-                  className="w-36 mr-4 bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden"
+                  className="w-40 mr-4 bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden shadow-zinc-200"
                   onPress={() => router.push(`/product/${relatedProduct.id}`)}
                 >
                   <View className="w-full aspect-[4/5] bg-zinc-100">
@@ -235,8 +325,8 @@ export default function ProductDetailsScreen() {
                   </View>
                   <View className="p-3">
                     <Text className="text-zinc-400 text-[8px] font-black uppercase tracking-widest mb-1">{relatedProduct.brandName}</Text>
-                    <Text className="text-woohl-dark font-bold text-xs leading-tight mb-1" numberOfLines={1}>{relatedProduct.name}</Text>
-                    <Text className="text-woohl-dark font-black text-sm">₹{relatedProduct.price}</Text>
+                    <Text className="text-woohl-dark font-bold text-sm leading-tight mb-1" numberOfLines={2}>{relatedProduct.name}</Text>
+                    <Text className="text-woohl-orange font-black text-base">₹{relatedProduct.price}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -244,32 +334,36 @@ export default function ProductDetailsScreen() {
           </View>
 
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Sticky Action Bar */}
-      <View className="absolute bottom-0 w-full bg-white border-t border-zinc-200 px-5 py-4 flex-row items-center justify-between pb-8">
+      <Animated.View style={[stickyBarStyle, { position: 'absolute', bottom: 0, width: '100%', zIndex: 100 }]} className="bg-white border-t border-zinc-200 px-5 py-4 flex-row items-center justify-between pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
         <View>
           <Text className="text-zinc-500 font-bold text-xs">Total Price</Text>
           <Text className="text-woohl-dark font-black text-xl">₹{product.price}</Text>
         </View>
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-3 relative">
           <TouchableOpacity 
-            onPress={() => {
-              addToCart(product);
-              alert("Added to Cart!");
-            }} 
-            className="px-6 py-3.5 rounded-xl border-2 border-woohl-dark items-center justify-center bg-white"
+            onPress={handleAddToCart} 
+            className="px-6 py-3.5 rounded-xl border-2 border-woohl-dark items-center justify-center bg-white z-10"
           >
             <Text className="text-woohl-dark font-black text-xs uppercase tracking-widest">Add To Cart</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => router.push('/checkout')}
-            className="px-8 py-3.5 rounded-xl bg-woohl-orange shadow-lg shadow-woohl-orange/40 items-center justify-center"
+            className="px-8 py-3.5 rounded-xl bg-woohl-orange shadow-lg shadow-woohl-orange/40 items-center justify-center z-10"
           >
             <Text className="text-white font-black text-xs uppercase tracking-widest">Buy Now</Text>
           </TouchableOpacity>
+          
+          {/* Fly to Cart Animation Image */}
+          <Animated.View style={[flyStyle, { position: 'absolute', left: 20, top: -20, zIndex: 99 }]} pointerEvents="none">
+            <View className="w-16 h-16 rounded-xl overflow-hidden border-2 border-woohl-orange shadow-lg shadow-woohl-orange">
+              <Image source={{ uri: product.images[0] }} className="w-full h-full" />
+            </View>
+          </Animated.View>
         </View>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }

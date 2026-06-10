@@ -7,7 +7,7 @@ module.exports = {
     extend: {
       colors: {
         woohl: {
-          orange: '#FF5A5F', // Primary Coral
+          primary: '#FF6A00', // Vibrant Orange
           green: '#10B981',
           red: '#EF4444',
           dark: '#111827',

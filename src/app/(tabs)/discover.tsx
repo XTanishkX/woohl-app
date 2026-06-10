@@ -4,15 +4,17 @@ import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Star, ChevronRigh
 import { useAppStore } from '../../store/useAppStore';
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withDelay, withTiming } from 'react-native-reanimated';
+import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { mockVideoFeed, mockProducts } from '../../lib/mock-db/data';
+import { TapGestureHandler, State } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 const { height, width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 60; // Approximate tab bar height
 const REEL_HEIGHT = height - TAB_BAR_HEIGHT;
 
-const ReelItem = ({ item, isActive, onCommentPress, onBuyPress }: any) => {
+const ReelItem = ({ item, isActive, isAnySheetOpen, onCommentPress, onBuyPress }: any) => {
   const router = useRouter();
   const { toggleSavedReel, savedReels, addToCart } = useAppStore();
   const [isLiked, setIsLiked] = useState(false);
@@ -35,13 +37,47 @@ const ReelItem = ({ item, isActive, onCommentPress, onBuyPress }: any) => {
     }
   }, [isActive, player]);
 
+  useEffect(() => {
+    if (player) {
+      player.volume = isAnySheetOpen ? 0.5 : 1.0;
+    }
+  }, [isAnySheetOpen, player]);
+
   const handleLike = () => {
-    setIsLiked(!isLiked);
+    setIsLiked(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     likeScale.value = withSequence(
       withSpring(1.4),
       withSpring(1)
     );
   };
+
+  const bigHeartScale = useSharedValue(0);
+  const bigHeartOpacity = useSharedValue(0);
+
+  const onDoubleTap = (event: any) => {
+    if (event.nativeEvent.state === State.ACTIVE) {
+      handleLike();
+      
+      bigHeartOpacity.value = 1;
+      bigHeartScale.value = 0;
+      bigHeartScale.value = withSequence(
+        withSpring(1.2, { damping: 10, stiffness: 100 }),
+        withDelay(200, withTiming(1.5, { duration: 300 }))
+      );
+      bigHeartOpacity.value = withDelay(
+        200, 
+        withTiming(0, { duration: 300 }, () => {
+          bigHeartScale.value = 0;
+        })
+      );
+    }
+  };
+
+  const bigHeartStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: bigHeartScale.value }],
+    opacity: bigHeartOpacity.value,
+  }));
 
   const handleSave = () => {
     toggleSavedReel(item.id);
@@ -71,13 +107,21 @@ const ReelItem = ({ item, isActive, onCommentPress, onBuyPress }: any) => {
 
   return (
     <View style={{ height: REEL_HEIGHT, width }} className="relative bg-black">
-      <VideoView
-        style={{ width: '100%', height: '100%' }}
-        player={player}
-        contentFit="cover"
-        nativeControls={false}
-      />
-      <View className="absolute inset-0 bg-black/20" />
+      <TapGestureHandler onHandlerStateChange={onDoubleTap} numberOfTaps={2}>
+        <Animated.View style={{ flex: 1 }}>
+          <VideoView
+            style={{ width: '100%', height: '100%' }}
+            player={player}
+            contentFit="cover"
+            nativeControls={false}
+          />
+          <View className="absolute inset-0 bg-black/20" />
+        </Animated.View>
+      </TapGestureHandler>
+
+      <Animated.View style={[bigHeartStyle, { position: 'absolute', top: '40%', alignSelf: 'center', zIndex: 50 }]} pointerEvents="none">
+         <Heart color="#FF6A00" size={100} fill="#FF6A00" />
+      </Animated.View>
 
       {/* Right Side Actions */}
       <View className="absolute right-4 bottom-32 items-center gap-6 z-10">
@@ -121,7 +165,7 @@ const ReelItem = ({ item, isActive, onCommentPress, onBuyPress }: any) => {
 
         {/* Quick Product Overlay CTA */}
         <TouchableOpacity 
-          onPress={() => onBuyPress(item.product)}
+          onPress={() => onBuyPress(item.product, item)}
           className="w-full bg-white/10 backdrop-blur-xl rounded-2xl p-3 flex-row items-center border border-white/20 shadow-lg shadow-black/50"
         >
           <View className="w-12 h-12 rounded-xl overflow-hidden mr-3 border border-white/20">
@@ -156,8 +200,11 @@ const ReelItem = ({ item, isActive, onCommentPress, onBuyPress }: any) => {
 export default function DiscoverScreen() {
   const [activeReelIndex, setActiveReelIndex] = useState(0);
   const [activeCommentReel, setActiveCommentReel] = useState<any>(null);
+  const [activeProductReel, setActiveProductReel] = useState<any>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const productBottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['60%'], []);
 
   const viewabilityConfig = useRef({
@@ -172,13 +219,14 @@ export default function DiscoverScreen() {
 
   const handleCommentPress = useCallback((reel: any) => {
     setActiveCommentReel(reel);
+    setIsSheetOpen(true);
     bottomSheetRef.current?.expand();
   }, []);
 
-  const handleBuyPress = useCallback((product: any) => {
-    // Navigate to PDP if they tap the product overlay generally (not Buy button)
-    // Actually the prompt says Buy = Checkout, Add to Cart = Toast.
-    // The Buy overlay has specific buttons for that inside ReelItem.
+  const handleBuyPress = useCallback((product: any, reel: any) => {
+    setActiveProductReel(reel);
+    setIsSheetOpen(true);
+    productBottomSheetRef.current?.expand();
   }, []);
 
   return (
@@ -199,6 +247,7 @@ export default function DiscoverScreen() {
           <ReelItem 
             item={item} 
             isActive={index === activeReelIndex} 
+            isAnySheetOpen={isSheetOpen}
             onCommentPress={handleCommentPress}
             onBuyPress={handleBuyPress}
           />
@@ -218,6 +267,8 @@ export default function DiscoverScreen() {
         index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
+        onClose={() => setIsSheetOpen(false)}
+        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.3} />}
         backgroundStyle={{ backgroundColor: '#fff', borderRadius: 24 }}
         handleIndicatorStyle={{ backgroundColor: '#ccc' }}
       >
@@ -283,6 +334,37 @@ export default function DiscoverScreen() {
               <Text className="text-woohl-orange font-bold text-sm">Post</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </BottomSheet>
+
+      <BottomSheet
+        ref={productBottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        onClose={() => setIsSheetOpen(false)}
+        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.3} />}
+        backgroundStyle={{ backgroundColor: '#fff', borderRadius: 24 }}
+        handleIndicatorStyle={{ backgroundColor: '#ccc' }}
+      >
+        <View className="flex-1 bg-white">
+          <Text className="text-center font-black text-lg py-3 border-b border-zinc-100">
+            Featured Products
+          </Text>
+          <BottomSheetScrollView contentContainerStyle={{ padding: 20 }}>
+            {activeProductReel?.product && (
+              <View className="flex-row bg-zinc-50 rounded-2xl p-3 border border-zinc-100 items-center shadow-sm shadow-zinc-200">
+                <Image source={{ uri: activeProductReel.product.images[0] }} className="w-20 h-20 rounded-xl bg-zinc-200" />
+                <View className="flex-1 ml-4 justify-center">
+                  <Text className="font-bold text-woohl-dark text-base" numberOfLines={2}>{activeProductReel.product.name}</Text>
+                  <Text className="text-woohl-orange font-black text-lg mt-1">₹{activeProductReel.product.price}</Text>
+                  <TouchableOpacity className="mt-2 bg-woohl-orange rounded-lg py-1.5 px-4 items-center self-start shadow-md shadow-woohl-orange/30">
+                     <Text className="text-white font-bold text-xs">View Product</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </BottomSheetScrollView>
         </View>
       </BottomSheet>
     </View>

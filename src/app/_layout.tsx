@@ -12,6 +12,7 @@ export { ErrorBoundary } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useAppStore } from '../store/useAppStore';
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
 
 function ToastNotification() {
   const { toastMessage } = useAppStore();
@@ -40,6 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="creator/[id]" />
         </Stack>
         <ToastNotification />
+        <LiveActivityTicker />
       </AppQueryProvider>
     </GestureHandlerRootView>
   );

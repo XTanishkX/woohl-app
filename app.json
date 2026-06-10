@@ -4,12 +4,12 @@
     "slug": "woohl",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./public/icon.png",
     "scheme": "woohl",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.woohl.app",
-      "icon": "./assets/expo.icon"
+      "icon": "./public/icon.png"
     },
     "android": {
       "package": "com.woohl.app",
@@ -32,7 +32,7 @@
         {
           "backgroundColor": "#FAFAF9",
           "android": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./public/icon.png",
             "imageWidth": 76
           }
         }

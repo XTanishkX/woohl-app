@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { ArrowLeft, Search as SearchIcon, Mic, Camera, TrendingUp } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import { ArrowLeft, Search as SearchIcon, Mic, Camera, TrendingUp, Store } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { mockProducts, mockBrands } from '../lib/mock-db/data';
 
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [query]);
+
+  const suggestions = debouncedQuery.length > 0 ? [
+    ...mockProducts.filter(p => p.name.toLowerCase().includes(debouncedQuery.toLowerCase())).slice(0, 5).map(p => ({ type: 'product', item: p })),
+    ...mockBrands.filter(b => b.name.toLowerCase().includes(debouncedQuery.toLowerCase())).slice(0, 3).map(b => ({ type: 'brand', item: b }))
+  ] : [];
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -36,7 +50,44 @@ export default function SearchScreen() {
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
         
-        {/* Trending Searches */}
+        {debouncedQuery.length > 0 ? (
+          <View>
+            <Text className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4 ml-2">Suggestions</Text>
+            {suggestions.length > 0 ? (
+              suggestions.map((suggestion, idx) => (
+                <TouchableOpacity 
+                  key={idx} 
+                  className="flex-row items-center py-4 border-b border-zinc-100"
+                  onPress={() => {
+                    if (suggestion.type === 'product') {
+                      router.push(`/product/${suggestion.item.id}`);
+                    } else {
+                      router.push(`/brand/${suggestion.item.id}`);
+                    }
+                  }}
+                >
+                  {suggestion.type === 'product' ? (
+                    <Image source={{ uri: suggestion.item.images[0] }} className="w-12 h-12 rounded-xl mr-4 bg-zinc-100" />
+                  ) : (
+                    <View className="w-12 h-12 rounded-full bg-zinc-100 items-center justify-center mr-4">
+                       <Store color="#FF6A00" size={20} />
+                    </View>
+                  )}
+                  <View className="flex-1">
+                    <Text className="text-woohl-dark font-black text-sm">{suggestion.item.name}</Text>
+                    <Text className="text-zinc-500 font-medium text-xs">{suggestion.type === 'product' ? 'Product' : 'Brand'}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View className="items-center justify-center py-10">
+                <Text className="text-zinc-400 font-bold">No results found for "{debouncedQuery}"</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View>
+            {/* Trending Searches */}
         <View className="mb-8">
           <View className="flex-row items-center gap-2 mb-4">
             <TrendingUp color="#FF5A5F" size={20} />
@@ -61,16 +112,18 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Recent Searches */}
-        <Text className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4 ml-2">Recent Searches</Text>
-        {['Bamboo Toothbrush', 'Urban Earth', 'Eco friendly shoes'].map((item, idx) => (
-          <TouchableOpacity key={idx} className="flex-row items-center justify-between py-4 border-b border-zinc-100">
-            <View className="flex-row items-center">
-              <SearchIcon color="#9CA3AF" size={16} className="mr-4" />
-              <Text className="text-woohl-dark font-medium text-sm">{item}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            {/* Recent Searches */}
+            <Text className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4 ml-2 mt-4">Recent Searches</Text>
+            {['Bamboo Toothbrush', 'Urban Earth', 'Eco friendly shoes'].map((item, idx) => (
+              <TouchableOpacity key={idx} className="flex-row items-center justify-between py-4 border-b border-zinc-100" onPress={() => setQuery(item)}>
+                <View className="flex-row items-center">
+                  <SearchIcon color="#9CA3AF" size={16} className="mr-4" />
+                  <Text className="text-woohl-dark font-medium text-sm">{item}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
