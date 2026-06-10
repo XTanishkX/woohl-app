@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Product } from '../lib/mock-db/types';
+import { Product, Address, PaymentMethod, Order } from '../lib/mock-db/types';
+import { mockAddresses, mockPaymentMethods, mockOrders } from '../lib/mock-db/data';
 
 // Auth Slice
 interface AuthSlice {
@@ -22,14 +23,7 @@ interface CartSlice {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
-}
-
-// Wallet Slice
-interface WalletSlice {
-  referralBalance: number;
-  referralThreshold: number;
-  addReferralBonus: (amount: number) => void;
-  useWalletBalance: (amount: number) => void;
+  getCartCount: () => number;
 }
 
 // Eco Slice
@@ -52,8 +46,42 @@ interface AnalyticsSlice {
   clearAnalytics: () => void;
 }
 
+// Wallet / Coins Slice
+interface WalletSlice {
+  woohlCoins: number;
+  referralCredits: number;
+  useCoins: (amount: number) => void;
+  useReferralCredits: (amount: number) => void;
+}
+
+// User Activity Slice
+interface UserActivitySlice {
+  wishlist: string[]; // Product IDs
+  savedReels: string[]; // Reel IDs
+  recentlyViewed: string[]; // Product IDs
+  followingBrands: string[]; // Startup IDs
+  addresses: Address[];
+  paymentMethods: PaymentMethod[];
+  orders: Order[];
+  toggleWishlist: (productId: string) => void;
+  toggleSavedReel: (reelId: string) => void;
+  addRecentlyViewed: (productId: string) => void;
+  toggleFollowBrand: (startupId: string) => void;
+  addAddress: (address: Address) => void;
+  removeAddress: (addressId: string) => void;
+  addPaymentMethod: (method: PaymentMethod) => void;
+  addOrder: (order: Order) => void;
+}
+
+// Toast Slice
+interface ToastSlice {
+  toastMessage: string | null;
+  showToast: (message: string) => void;
+  hideToast: () => void;
+}
+
 // Mega Store Type combining all slices
-type StoreState = AuthSlice & CartSlice & WalletSlice & EcoSlice & ClosetSlice & AnalyticsSlice;
+type StoreState = AuthSlice & CartSlice & EcoSlice & ClosetSlice & AnalyticsSlice & UserActivitySlice & WalletSlice & ToastSlice;
 
 export const useAppStore = create<StoreState>()(
   persist(
@@ -64,10 +92,56 @@ export const useAppStore = create<StoreState>()(
       login: (name) => set({ isAuthenticated: true, user: { id: 'u1', name, avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200' } }),
       logout: () => set({ isAuthenticated: false, user: null }),
 
+      // Toast implementation
+      toastMessage: null,
+      showToast: (message) => set({ toastMessage: message }),
+      hideToast: () => set({ toastMessage: null }),
+
+      // User Activity implementation
+      wishlist: [],
+      savedReels: [],
+      recentlyViewed: [],
+      followingBrands: [],
+      addresses: mockAddresses,
+      paymentMethods: mockPaymentMethods,
+      orders: mockOrders,
+      toggleWishlist: (productId) => set((state) => ({
+        wishlist: state.wishlist.includes(productId)
+          ? state.wishlist.filter(id => id !== productId)
+          : [...state.wishlist, productId]
+      })),
+      toggleSavedReel: (reelId) => set((state) => ({
+        savedReels: state.savedReels.includes(reelId)
+          ? state.savedReels.filter(id => id !== reelId)
+          : [...state.savedReels, reelId]
+      })),
+      addRecentlyViewed: (productId) => set((state) => {
+        const filtered = state.recentlyViewed.filter(id => id !== productId);
+        return { recentlyViewed: [productId, ...filtered].slice(0, 20) }; // Keep last 20
+      }),
+      toggleFollowBrand: (startupId) => set((state) => ({
+        followingBrands: state.followingBrands.includes(startupId)
+          ? state.followingBrands.filter(id => id !== startupId)
+          : [...state.followingBrands, startupId]
+      })),
+      addAddress: (address) => set((state) => ({ addresses: [...state.addresses, address] })),
+      removeAddress: (addressId) => set((state) => ({ addresses: state.addresses.filter(a => a.id !== addressId) })),
+      addPaymentMethod: (method) => set((state) => ({ paymentMethods: [...state.paymentMethods, method] })),
+      addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
+
+      // Wallet / Coins implementation
+      woohlCoins: 450,
+      referralCredits: 120,
+      useCoins: (amount) => set((state) => ({ woohlCoins: Math.max(0, state.woohlCoins - amount) })),
+      useReferralCredits: (amount) => set((state) => ({ referralCredits: Math.max(0, state.referralCredits - amount) })),
+
       // Cart implementation
       cart: [],
       addToCart: (product) => set((state) => {
         get().logCartAddition();
+        get().showToast(`Added ${product.name} to Cart`);
+        setTimeout(() => get().hideToast(), 3000);
+        
         const existingItem = state.cart.find((item) => item.id === product.id);
         if (existingItem) {
           return {
@@ -88,12 +162,7 @@ export const useAppStore = create<StoreState>()(
       })),
       clearCart: () => set({ cart: [] }),
       getCartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
-
-      // Wallet implementation
-      referralBalance: 120, // Start with some mock balance
-      referralThreshold: 600,
-      addReferralBonus: (amount) => set((state) => ({ referralBalance: state.referralBalance + amount })),
-      useWalletBalance: (amount) => set((state) => ({ referralBalance: Math.max(0, state.referralBalance - amount) })),
+      getCartCount: () => get().cart.reduce((count, item) => count + item.quantity, 0),
 
       // Eco implementation
       totalCo2Saved: 12.4, // Initial mock amount
